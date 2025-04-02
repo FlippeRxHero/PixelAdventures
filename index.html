@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Adventures</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <h1>Pixel Adventures</h1>
+            <p id="stats">Level: 1 | HP: 100/100 | Energy: 50/50 | Gold: 0</p>
+        </div>
+
+        <!-- Character Selection (shown only at the start) -->
+        <div id="character-selection" class="menu">
+            <h2>Choose Your Character</h2>
+            <button class="warrior" onclick="selectCharacter('Warrior')">Warrior (+10% HP, +5% Damage)</button>
+            <button class="mage" onclick="selectCharacter('Mage')">Mage (+10% Energy, +5% XP from Quests)</button>
+            <button class="rogue" onclick="selectCharacter('Rogue')">Rogue (+10% Gold, +5% Rare Loot Chance)</button>
+        </div>
+
+        <!-- Main Menu -->
+        <div id="main-menu" class="menu" style="display: none;">
+            <button class="red" onclick="fightMonster()">Fight Monsters</button>
+            <div class="quest-container">
+                <button id="quest-button" class="orange" onclick="doQuest()">Start The Village’s Plea</button>
+                <p id="quest-timer" class="timer"></p>
+            </div>
+            <button class="green" onclick="craftGears="craftGear()">Craft Gear</button>
+            <button class="green" onclick="viewCraftingRecipes()">Crafting Recipes</button>
+            <button class="blue" onclick="visitBlacksmith()">Blacksmith</button>
+            <button class="purple" onclick="viewAchievements()">Achievements</button>
+            <button id="settings-button" class="gray" onclick="openSettings()">Settings</button>
+            <button id="boss-button" class="yellow" onclick="fightBoss()" disabled>Dark King (Level 20)</button>
+        </div>
+
+        <!-- Feedback Log -->
+        <div class="log">
+            <p id="log">Welcome to Pixel Adventures! Choose your character to begin.</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
