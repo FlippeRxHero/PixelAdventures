@@ -133,7 +133,7 @@ const QUESTS = Object.freeze([
         name: "The Crystal Caverns",
         timeLimit: 7 * 60 * 60 * 1000,
         progressPerAction: 20,
-        story: "The Traitor’s Map leads to the Crystal Caverns, where a fragment of the Shadow Crystal is hidden. 'We must destroy it to weaken the Dark King,' Elara says.",
+        story  : "The Traitor’s Map leads to the Crystal Caverns, where a fragment of the Shadow Crystal is hidden. 'We must destroy it to weaken the Dark King,' Elara says.",
         onStart: "Elara equips you with a crystal hammer. 'This will shatter the fragment. But the caverns are filled with dark energy.'",
         onProgress: "The caverns glow with an eerie light. You feel the Dark King’s presence as you chip away at the crystal fragment.",
         onComplete: "The fragment shatters with a deafening crack! Elara cheers, 'The Dark King’s power is fading. We’re almost ready to face him.'",
@@ -237,10 +237,24 @@ function updateStats() {
     }
 }
 
-// Log messages with sanitization
-function log(message) {
+// Log messages with ASCII art support
+function log(message, asciiArt = null) {
     try {
-        document.getElementById("log").innerText = sanitizeInput(message);
+        let displayMessage = message;
+        if (asciiArt) {
+            // Combine the ASCII art and message side by side
+            const artLines = asciiArt.split('\n');
+            const messageLines = message.split('\n');
+            const maxLines = Math.max(artLines.length, messageLines.length);
+            let combined = '';
+            for (let i = 0; i < maxLines; i++) {
+                const artLine = (artLines[i] || '').padEnd(5, ' '); // Pad art to 5 characters
+                const msgLine = messageLines[i] || '';
+                combined += `${artLine}  ${msgLine}\n`;
+            }
+            displayMessage = combined;
+        }
+        document.getElementById("log").innerText = sanitizeInput(displayMessage);
     } catch (e) {
         console.error("Error logging message: ", e);
     }
@@ -305,21 +319,25 @@ function selectCharacter(type) {
             return;
         }
         player.characterType = type;
+        let asciiArt;
         if (type === "Warrior") {
             player.maxHp += 10;
             player.hp = player.maxHp;
             player.damage += 0.5;
+            asciiArt = "   W  \n  /|\\ \n  / \\ ";
         } else if (type === "Mage") {
             player.maxEnergy += 5;
             player.energy = player.maxEnergy;
+            asciiArt = "   M  \n  /|\\ \n  / \\ ";
         } else if (type === "Rogue") {
             player.gold += 10;
+            asciiArt = "   R  \n  /|\\ \n  / \\ ";
         }
         document.getElementById("character-selection").style.display = "none";
         document.getElementById("main-menu").style.display = "flex";
         updateStats();
         saveGame();
-        log(`You are now a ${sanitizeInput(type)}! Start your adventure in the cursed land of Eldoria.`);
+        log(`You are now a ${sanitizeInput(type)}! Start your adventure in the cursed land of Eldoria.`, asciiArt);
     } catch (e) {
         log("Error selecting character: " + sanitizeInput(e.message));
     }
@@ -337,7 +355,7 @@ function fightMonster() {
 
         if (!currentMonster) {
             if (player.energy < 5) {
-                log("Not enough Energy! Wait for it to regenerate or buy more.");
+                log("Not enough Energy! Wait for it to regenerate.");
                 return;
             }
             player.energy -= 5;
@@ -350,7 +368,18 @@ function fightMonster() {
                 damage: monsterType.damage,
                 lootTier: monsterType.lootTier
             };
-            log(`A ${sanitizeInput(currentMonster.name)} (${sanitizeInput(currentMonster.difficulty)}) appears! HP: ${currentMonster.hp}/${currentMonster.maxHp}.`);
+            let monsterArt;
+            if (monsterType.name === "Goblin") {
+                monsterArt = "   G  \n  /|\\ \n  / \\ ";
+            } else if (monsterType.name === "Skeleton") {
+                monsterArt = "  K K \n  /|\\ \n  / \\ ";
+            } else {
+                monsterArt = "  W W \n  /|\\ \n  / \\ "; // Wolf
+            }
+            let playerArt = player.characterType === "Warrior" ? "   W  \n  /|\\ \n  / \\ " :
+                            player.characterType === "Mage" ? "   M  \n  /|\\ \n  / \\ " :
+                            "   R  \n  /|\\ \n  / \\ ";
+            log(`A ${sanitizeInput(currentMonster.name)} (${sanitizeInput(currentMonster.difficulty)}) appears! HP: ${currentMonster.hp}/${currentMonster.maxHp}.`, `${playerArt}  vs  ${monsterArt}`);
         }
 
         let damageDealt = player.damage;
@@ -375,9 +404,10 @@ function fightMonster() {
             player.gold += GAME_CONSTANTS.MONSTER_GOLD * (player.characterType === "Rogue" ? 1.1 : 1);
             player.achievements.monstersDefeated++;
             const loot = dropLoot(currentMonster.lootTier);
+            let lootArt = loot ? (loot === "Sword" ? "  /  \n  |  \n  |  " : "  P  \n  |  \n  |  ") : null;
             if (loot) {
                 player.inventory.push(loot);
-                log(`You defeated the ${sanitizeInput(currentMonster.name)}! Gained ${GAME_CONSTANTS.MONSTER_XP} XP, ${GAME_CONSTANTS.MONSTER_GOLD} Gold, and found ${sanitizeInput(loot)}.`);
+                log(`You defeated the ${sanitizeInput(currentMonster.name)}! Gained ${GAME_CONSTANTS.MONSTER_XP} XP, ${GAME_CONSTANTS.MONSTER_GOLD} Gold, and found ${sanitizeInput(loot)}.`, lootArt);
             } else {
                 log(`You defeated the ${sanitizeInput(currentMonster.name)}! Gained ${GAME_CONSTANTS.MONSTER_XP} XP, ${GAME_CONSTANTS.MONSTER_GOLD} Gold.`);
             }
@@ -427,7 +457,7 @@ function dropLoot(lootTier) {
 function doQuest() {
     try {
         if (player.energy < 3) {
-            log("Not enough Energy! Wait for it to regenerate or buy more.");
+            log("Not enough Energy! Wait for it to regenerate.");
             return;
         }
 
@@ -441,7 +471,7 @@ function doQuest() {
             player.currentQuest = nextQuest;
             player.questProgress = 0;
             player.questStartTime = Date.now();
-            log(`${sanitizeInput(player.currentQuest.story)}\n${sanitizeInput(player.currentQuest.onStart)}\nProgress: ${player.questProgress}% | Time Limit: ${Math.floor(player.currentQuest.timeLimit / (60 * 60 * 1000))} hours`);
+            log(`${sanitizeInput(player.currentQuest.story)}\n${sanitizeInput(player.currentQuest.onStart)}\nProgress: ${player.questProgress}% | Time Limit: ${Math.floor(player.currentQuest.timeLimit / (60 * 60 * 1000))} hours`, "  *  \n  |  \n  *  ");
             updateQuestButton();
             updateQuestTimer();
         } else {
@@ -461,12 +491,13 @@ function doQuest() {
             if (player.questProgress >= 100) {
                 player.xp += player.currentQuest.reward.xp;
                 player.gold += player.currentQuest.reward.gold;
+                let rewardArt = player.currentQuest.reward.item ? "  P  \n  |  \n  |  " : null;
                 if (player.currentQuest.reward.item) {
                     player.inventory.push(player.currentQuest.reward.item);
                 }
                 player.achievements.questsCompleted++;
                 player.completedQuests.push(player.currentQuest.id);
-                log(`${sanitizeInput(player.currentQuest.onComplete)}\nReward: ${player.currentQuest.reward.xp} XP, ${player.currentQuest.reward.gold} Gold${player.currentQuest.reward.item ? `, ${sanitizeInput(player.currentQuest.reward.item)}` : ""}`);
+                log(`${sanitizeInput(player.currentQuest.onComplete)}\nReward: ${player.currentQuest.reward.xp} XP, ${player.currentQuest.reward.gold} Gold${player.currentQuest.reward.item ? `, ${sanitizeInput(player.currentQuest.reward.item)}` : ""}`, rewardArt);
                 player.currentQuest = null;
                 player.questProgress = 0;
                 player.questStartTime = null;
@@ -477,7 +508,7 @@ function doQuest() {
                 const timeRemaining = player.currentQuest.timeLimit - elapsedTime;
                 const hoursRemaining = Math.floor(timeRemaining / (60 * 60 * 1000));
                 const minutesRemaining = Math.floor((timeRemaining % (60 * 60 * 1000)) / (60 * 1000));
-                log(`${sanitizeInput(player.currentQuest.onProgress)}\nProgress: ${player.questProgress}% | Time Remaining: ${hoursRemaining}h ${minutesRemaining}m`);
+                log(`${sanitizeInput(player.currentQuest.onProgress)}\nProgress: ${player.questProgress}% | Time Remaining: ${hoursRemaining}h ${minutesRemaining}m`, "  *  \n  |  \n  *  ");
             }
         }
 
@@ -536,7 +567,8 @@ function craftGear() {
         }
 
         player.achievements.itemsCrafted++;
-        log(`Crafted ${sanitizeInput(recipeToCraft.name)}! Inventory: ${sanitizeInput(player.inventory.join(", "))}`);
+        let itemArt = recipeToCraft.name.includes("Sword") || recipeToCraft.name.includes("Dagger") ? "  /  \n  |  \n  |  " : "  P  \n  |  \n  |  ";
+        log(`Crafted ${sanitizeInput(recipeToCraft.name)}! Inventory: ${sanitizeInput(player.inventory.join(", "))}`, itemArt);
         updateStats();
         saveGame();
     } catch (e) {
@@ -558,19 +590,10 @@ function viewCraftingRecipes() {
     }
 }
 
-// Visit Blacksmith
+// Visit Blacksmith (Removed Energy Purchase)
 function visitBlacksmith() {
     try {
-        if (player.gold >= 50) {
-            player.gold -= 50;
-            player.energy += 10;
-            if (player.energy > player.maxEnergy) player.energy = player.maxEnergy;
-            log("Bought 10 Energy for 50 Gold!");
-        } else {
-            log("Not enough Gold to buy Energy!");
-        }
-        updateStats();
-        saveGame();
+        log("The blacksmith nods. 'I can help you craft gear. Check the Crafting Recipes menu.'");
     } catch (e) {
         log("Error visiting blacksmith: " + sanitizeInput(e.message));
     }
@@ -595,11 +618,17 @@ function fightBoss() {
         }
 
         if (player.energy < 10) {
-            log("Not enough Energy! Wait for it to regenerate or buy more.");
+            log("Not enough Energy! Wait for it to regenerate.");
             return;
         }
 
         player.energy -= 10;
+        let bossArt = boss.name === "Dark King" ? "  D D \n  /|\\ \n  / \\ " : "  B B \n  /|\\ \n  / \\ ";
+        let playerArt = player.characterType === "Warrior" ? "   W  \n  /|\\ \n  / \\ " :
+                        player.characterType === "Mage" ? "   M  \n  /|\\ \n  / \\ " :
+                        "   R  \n  /|\\ \n  / \\ ";
+        log(`You challenge ${sanitizeInput(boss.name)}!`, `${playerArt}  vs  ${bossArt}`);
+
         const damageTaken = Math.floor(Math.random() * 50) + 20;
         player.hp -= damageTaken;
         boss.hp -= player.damage;
@@ -609,7 +638,8 @@ function fightBoss() {
             player.gold += boss.reward.gold;
             player.inventory.push(boss.reward.loot);
             if (boss.name === "Dark King") player.achievements.darkKingDefeated = true;
-            log(`You defeated ${sanitizeInput(boss.name)}! Gained ${boss.reward.xp} XP, ${boss.reward.gold} Gold, and ${sanitizeInput(boss.reward.loot)}.`);
+            let lootArt = "  P  \n  |  \n  |  ";
+            log(`You defeated ${sanitizeInput(boss.name)}! Gained ${boss.reward.xp} XP, ${boss.reward.gold} Gold, and ${sanitizeInput(boss.reward.loot)}.`, lootArt);
             checkLevelUp();
         } else {
             log(`${sanitizeInput(boss.name)} strikes back! You took ${damageTaken} damage. Your HP: ${player.hp}/${player.maxHp}.`);
